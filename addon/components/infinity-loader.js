@@ -1,4 +1,4 @@
-import { cancel, debounce } from '@ember/runloop';
+import { later, cancel, debounce } from '@ember/runloop';
 import { get, set, computed, defineProperty } from '@ember/object';
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
@@ -127,7 +127,24 @@ const InfinityLoaderComponent = Component.extend({
 
     onEnter(instance.didEnterViewport.bind(instance));
     onExit(instance.didExitViewport.bind(instance));
+
+    later(instance, function() {
+      this.evaluateHeight()
+    }, 500);
   },
+  evaluateHeight() {
+    if (this.isDestroyed) {
+      return
+    }
+
+    if (this._viewportBottom() > this.elem.getBoundingClientRect().top) {
+      this._debounceScrolledToBottom();
+    }
+    later(this, function() {
+      this.evaluateHeight()
+    }, 500);
+  },
+
 
   willDestroy() {
     this._cancelTimers();
@@ -156,6 +173,7 @@ const InfinityLoaderComponent = Component.extend({
     ) {
       return false;
     }
+
 
     if (get(this, 'loadPrevious')) {
       return this._debounceScrolledToTop();
